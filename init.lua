@@ -131,6 +131,10 @@ require('lazy').setup({
   },
 
   {
+    'nvim-pack/nvim-spectre',
+  },
+
+  {
     'nvim-treesitter/nvim-treesitter',
     dependencies = {
       'nvim-treesitter/nvim-treesitter-textobjects',
