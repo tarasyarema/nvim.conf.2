@@ -142,6 +142,33 @@ require('lazy').setup({
     build = ':TSUpdate',
   },
 
+  {
+    "tpope/vim-dispatch",
+  },
+
+  {
+    "skywind3000/asyncrun.vim"
+  },
+
+  {
+    'vim-test/vim-test',
+    config = function()
+      vim.cmd [[
+        nmap <silent> <leader>t :TestNearest<CR>
+        nmap <silent> <leader>T :TestFile<CR>
+        nmap <silent> <leader>tt :TestSuite<CR>
+        nmap <silent> <leader>l :TestLast<CR>
+        nmap <silent> <leader>g :TestVisit<CR>
+
+        let test#strategy = {
+          \ 'nearest': 'dispatch',
+          \ 'file':    'dispatch',
+          \ 'suite':   'dispatch',
+        \}
+      ]]
+    end,
+  },
+
   -- Custom plugin folder
   { import = 'custom.plugins' },
 }, {})
