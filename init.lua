@@ -24,6 +24,30 @@ require('lazy').setup({
   'tpope/vim-sleuth',
 
   {
+    -- Find and replace on steroids
+    'nvim-pack/nvim-spectre',
+    dependencies = {
+      'nvim-lua/plenary.nvim'
+    },
+    opts = {
+      on_attach = function()
+        vim.keymap.set('n', '<leader>S', '<cmd>lua require("spectre").toggle()<CR>', {
+          desc = "Toggle Spectre"
+        })
+        vim.keymap.set('n', '<leader>sw', '<cmd>lua require("spectre").open_visual({select_word=true})<CR>', {
+          desc = "Search current word"
+        })
+        vim.keymap.set('v', '<leader>sw', '<esc><cmd>lua require("spectre").open_visual()<CR>', {
+          desc = "Search current word"
+        })
+        vim.keymap.set('n', '<leader>sp', '<cmd>lua require("spectre").open_file_search({select_word=true})<CR>', {
+          desc = "Search on current file"
+        })
+      end
+    }
+  },
+
+  {
     -- LSP Configuration & Plugins
     'neovim/nvim-lspconfig',
     dependencies = {
@@ -38,17 +62,29 @@ require('lazy').setup({
       -- NOTE(taras) WTF is this
       'folke/neodev.nvim',
     },
+    opts = {
+      on_attach = function()
+        vim.keymap.set('n', '<leader>S', '<cmd>lua require("spectre").toggle()<CR>', {
+          desc = "Toggle Spectre"
+        })
+        vim.keymap.set('n', '<leader>sw', '<cmd>lua require("spectre").open_visual({select_word=true})<CR>', {
+          desc = "Search current word"
+        })
+        vim.keymap.set('v', '<leader>sw', '<esc><cmd>lua require("spectre").open_visual()<CR>', {
+          desc = "Search current word"
+        })
+        vim.keymap.set('n', '<leader>sp', '<cmd>lua require("spectre").open_file_search({select_word=true})<CR>', {
+          desc = "Search on current file"
+        })
+      end
+    }
   },
 
   {
     -- Autocompletion
     'hrsh7th/nvim-cmp',
     dependencies = {
-      -- Snippet Engine & its associated nvim-cmp source
-      'L3MON4D3/LuaSnip',
-      'saadparwaiz1/cmp_luasnip',
       'hrsh7th/cmp-nvim-lsp',
-      'rafamadriz/friendly-snippets',
     },
   },
 
@@ -169,6 +205,101 @@ require('lazy').setup({
     end,
   },
 
+  {
+    "mfussenegger/nvim-dap",
+    dependencies = {
+      "leoluz/nvim-dap-go",
+      "rcarriga/nvim-dap-ui",
+      "theHamsta/nvim-dap-virtual-text",
+      "nvim-neotest/nvim-nio",
+      "williamboman/mason.nvim",
+    },
+    config = function()
+      local dap = require "dap"
+      local ui = require "dapui"
+
+      require("dapui").setup()
+      require("dap-go").setup()
+
+      require("nvim-dap-virtual-text").setup {
+        -- This just tries to mitigate the chance that I leak tokens here. Probably won't stop it from happening...
+        display_callback = function(variable)
+          local name = string.lower(variable.name)
+          local value = string.lower(variable.value)
+          if name:match "secret" or name:match "api" or value:match "secret" or value:match "api" then
+            return "*****"
+          end
+
+          if #variable.value > 15 then
+            return " " .. string.sub(variable.value, 1, 15) .. "... "
+          end
+
+          return " " .. variable.value
+        end,
+      }
+
+      -- Handled by nvim-dap-go
+      -- dap.adapters.go = {
+      --   type = "server",
+      --   port = "${port}",
+      --   executable = {
+      --     command = "dlv",
+      --     args = { "dap", "-l", "127.0.0.1:${port}" },
+      --   },
+      -- }
+
+      local elixir_ls_debugger = vim.fn.exepath "elixir-ls-debugger"
+
+      if elixir_ls_debugger ~= "" then
+        dap.adapters.mix_task = {
+          type = "executable",
+          command = elixir_ls_debugger,
+        }
+
+        dap.configurations.elixir = {
+          {
+            type = "mix_task",
+            name = "phoenix server",
+            task = "phx.server",
+            request = "launch",
+            projectDir = "${workspaceFolder}",
+            exitAfterTaskReturns = false,
+            debugAutoInterpretAllModules = false,
+          },
+        }
+      end
+
+      vim.keymap.set("n", "<leader>b", dap.toggle_breakpoint)
+      vim.keymap.set("n", "<leader>gb", dap.run_to_cursor)
+
+      -- Eval var under cursor
+      vim.keymap.set("n", "<leader>+", function()
+        require("dapui").eval(nil, { enter = true })
+      end)
+
+      vim.keymap.set("n", "<F1>", dap.continue)
+      vim.keymap.set("n", "<F2>", dap.step_into)
+      vim.keymap.set("n", "<F3>", dap.step_over)
+      vim.keymap.set("n", "<F4>", dap.step_out)
+      vim.keymap.set("n", "<F5>", dap.step_back)
+      vim.keymap.set("n", "<F13>", dap.restart)
+      vim.keymap.set("n", "<F12>", dap.close)
+
+      dap.listeners.before.attach.dapui_config = function()
+        ui.open()
+      end
+      dap.listeners.before.launch.dapui_config = function()
+        ui.open()
+      end
+      dap.listeners.before.event_terminated.dapui_config = function()
+        ui.close()
+      end
+      dap.listeners.before.event_exited.dapui_config = function()
+        ui.close()
+      end
+    end,
+  },
+
   -- Custom plugin folder
   { import = 'custom.plugins' },
 }, {})
@@ -189,13 +320,9 @@ vim.o.cursorline     = true
 vim.o.ruler          = true
 vim.o.undolevels     = 1000
 vim.o.backspace      = 'indent,eol,start'
-vim.o.noerrorbells   = true
 vim.o.visualbell     = true
-vim.o.t_vb           = ''
 vim.o.belloff        = 'all'
-vim.o.noshowmode     = true
 vim.o.hidden         = true
-vim.o.noequalalways  = true
 vim.o.splitright     = true
 vim.o.splitbelow     = true
 vim.o.autoindent     = true
@@ -205,7 +332,6 @@ vim.o.breakindent    = true
 vim.o.linebreak      = true
 vim.o.expandtab      = true
 vim.o.list           = true
-vim.o.noswapfile     = true
 vim.o.cmdheight      = 1
 vim.o.scrolloff      = 10
 vim.o.tabstop        = 4
@@ -407,10 +533,18 @@ local on_attach = function(_, bufnr)
   end, { desc = 'Format current buffer with LSP' })
 end
 
+-- For Deno LSP documentation
+vim.g.markdown_fenced_languages = {
+  "ts=typescript"
+}
+
 -- mason-lspconfig requires that these setup functions are called in this order
 -- before setting up the servers.
 require('mason').setup()
-require('mason-lspconfig').setup()
+
+-- Ensure the servers above are installed
+local mason_lspconfig = require 'mason-lspconfig'
+mason_lspconfig.setup()
 
 -- Enable the following language servers
 local servers = {
@@ -418,13 +552,21 @@ local servers = {
   gopls = {},
   pyright = {},
   rust_analyzer = {},
-  tsserver = { single_file_support = false },
-  eslint = { filetypes = { 'javascript', 'typescript', 'typescriptreact' } },
+  denols = {
+    root_dir = require("lspconfig.util").root_pattern("deno.json", "deno.jsonc")
+  },
+  ts_ls = {
+    single_file_support = false,
+    root_dir = require("lspconfig.util").root_pattern("package.json")
+  },
+  -- eslint = { filetypes = { 'javascript', 'typescript', 'typescriptreact' } },
   html = { filetypes = { 'html', 'twig', 'hbs' } },
   lua_ls = {
-    Lua = {
-      workspace = { checkThirdParty = false },
-      telemetry = { enable = false },
+    settings = {
+      Lua = {
+        workspace = { checkThirdParty = false },
+        telemetry = { enable = false },
+      },
     },
   },
   elixirls = {},
@@ -437,9 +579,6 @@ require('neodev').setup()
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
 
--- Ensure the servers above are installed
-local mason_lspconfig = require 'mason-lspconfig'
-
 mason_lspconfig.setup {
   ensure_installed = vim.tbl_keys(servers),
 }
@@ -449,9 +588,10 @@ mason_lspconfig.setup_handlers {
     require('lspconfig')[server_name].setup {
       capabilities = capabilities,
       on_attach = on_attach,
-      settings = servers[server_name],
-      filetypes = (servers[server_name] or {}).filetypes,
       single_file_support = (servers[server_name] or {}).single_file_support,
+      root_dir = (servers[server_name] or {}).root_dir,
+      settings = (servers[server_name] or {}).settings,
+      filetypes = (servers[server_name] or {}).filetypes,
     }
   end,
 }
@@ -459,16 +599,8 @@ mason_lspconfig.setup_handlers {
 -- [[ Configure nvim-cmp ]]
 -- See `:help cmp`
 local cmp = require 'cmp'
-local luasnip = require 'luasnip'
-require('luasnip.loaders.from_vscode').lazy_load()
-luasnip.config.setup {}
 
 cmp.setup {
-  snippet = {
-    expand = function(args)
-      luasnip.lsp_expand(args.body)
-    end,
-  },
   mapping = cmp.mapping.preset.insert {
     ['<C-n>'] = cmp.mapping.select_next_item(),
     ['<C-p>'] = cmp.mapping.select_prev_item(),
@@ -482,7 +614,6 @@ cmp.setup {
   },
   sources = {
     { name = 'nvim_lsp' },
-    { name = 'luasnip' },
   },
 }
 
