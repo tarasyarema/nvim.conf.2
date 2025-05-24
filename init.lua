@@ -1,5 +1,9 @@
+vim.cmd("language en_US")
+
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
+
+vim.g.root_spec = { { ".git" }, "lsp", "cwd" }
 
 -- This is the basics of the config
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -300,6 +304,66 @@ require('lazy').setup({
     end,
   },
 
+  {
+    "yetone/avante.nvim",
+    event = "VeryLazy",
+    version = false, -- Never set this value to "*"! Never!
+    opts = {
+      -- add any opts here
+      -- for example
+      provider = "openai",
+      openai = {
+        endpoint = "https://api.openai.com/v1",
+        model = "gpt-4.1",            -- your desired model (or use gpt-4o, etc.)
+        timeout = 30000,              -- Timeout in milliseconds, increase this for reasoning models
+        temperature = 0,
+        max_completion_tokens = 8192, -- Increase this to include reasoning tokens (for reasoning models)
+        --reasoning_effort = "medium", -- low|medium|high, only used for reasoning models
+      },
+    },
+    -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
+    build = "make",
+    -- build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false" -- for windows
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter",
+      "stevearc/dressing.nvim",
+      "nvim-lua/plenary.nvim",
+      "MunifTanjim/nui.nvim",
+      --- The below dependencies are optional,
+      "echasnovski/mini.pick",         -- for file_selector provider mini.pick
+      "nvim-telescope/telescope.nvim", -- for file_selector provider telescope
+      "hrsh7th/nvim-cmp",              -- autocompletion for avante commands and mentions
+      "ibhagwan/fzf-lua",              -- for file_selector provider fzf
+      "nvim-tree/nvim-web-devicons",   -- or echasnovski/mini.icons
+      "zbirenbaum/copilot.lua",        -- for providers='copilot'
+      {
+        -- support for image pasting
+        "HakonHarnes/img-clip.nvim",
+        event = "VeryLazy",
+        opts = {
+          -- recommended settings
+          default = {
+            embed_image_as_base64 = false,
+            prompt_for_file_name = false,
+            drag_and_drop = {
+              insert_mode = true,
+            },
+            -- required for Windows users
+            use_absolute_path = false,
+          },
+        },
+      },
+      {
+        -- Make sure to set this up properly if you have lazy=true
+        'MeanderingProgrammer/render-markdown.nvim',
+        opts = {
+          file_types = { "markdown", "Avante" },
+        },
+        ft = { "markdown", "Avante" },
+      },
+    },
+  },
+
   -- Custom plugin folder
   { import = 'custom.plugins' },
 }, {})
@@ -542,15 +606,23 @@ vim.g.markdown_fenced_languages = {
 -- before setting up the servers.
 require('mason').setup()
 
--- Ensure the servers above are installed
-local mason_lspconfig = require 'mason-lspconfig'
-mason_lspconfig.setup()
-
 -- Enable the following language servers
 local servers = {
   clangd = {},
   gopls = {},
   pyright = {},
+  yamlls = {
+    settings = {
+      yaml = {
+        format = {
+          enable = true,
+        },
+        schemas = {
+          ["/Users/taras/Documents/work/solo/mono/core/schemas/schema.json"] = "/native/**/*.yaml",
+        },
+      },
+    },
+  },
   rust_analyzer = {},
   denols = {
     root_dir = require("lspconfig.util").root_pattern("deno.json", "deno.jsonc")
@@ -572,29 +644,27 @@ local servers = {
   elixirls = {},
 }
 
+-- https://github.com/mason-org/mason-lspconfig.nvim/issues/545
+-- Ensure the servers above are installed
+require("mason-lspconfig").setup {
+  automatic_enable = false, -- HACK: rely on lspconfig[server_name].setup to enable the LSPs. For some reason, pyright doesn't get enabled this way
+  ensure_installed = vim.tbl_keys(servers),
+}
+
+for server_name, _ in pairs(servers) do
+  require('lspconfig')[server_name].setup {
+    capabilities = capabilities,
+    on_attach = on_attach,
+    handlers = handlers,
+  }
+end
+
 -- Setup neovim lua configuration
 require('neodev').setup()
 
 -- nvim-cmp supports additional completion capabilities, so broadcast that to servers
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
-
-mason_lspconfig.setup {
-  ensure_installed = vim.tbl_keys(servers),
-}
-
-mason_lspconfig.setup_handlers {
-  function(server_name)
-    require('lspconfig')[server_name].setup {
-      capabilities = capabilities,
-      on_attach = on_attach,
-      single_file_support = (servers[server_name] or {}).single_file_support,
-      root_dir = (servers[server_name] or {}).root_dir,
-      settings = (servers[server_name] or {}).settings,
-      filetypes = (servers[server_name] or {}).filetypes,
-    }
-  end,
-}
 
 -- [[ Configure nvim-cmp ]]
 -- See `:help cmp`
