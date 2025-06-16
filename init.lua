@@ -312,14 +312,16 @@ require('lazy').setup({
       -- add any opts here
       -- for example
       provider = "openai",
-      openai = {
-        endpoint = "https://api.openai.com/v1",
-        model = "gpt-4.1",            -- your desired model (or use gpt-4o, etc.)
-        timeout = 30000,              -- Timeout in milliseconds, increase this for reasoning models
-        temperature = 0,
-        max_completion_tokens = 8192, -- Increase this to include reasoning tokens (for reasoning models)
-        --reasoning_effort = "medium", -- low|medium|high, only used for reasoning models
-      },
+      providers = {
+        openai = {
+          endpoint = "https://api.openai.com/v1",
+          model = "gpt-4.1", -- your desired model (or use gpt-4o, etc.)
+          timeout = 30000,   -- Timeout in milliseconds, increase this for reasoning models
+          -- temperature = 0,
+          -- max_completion_tokens = 8192, -- Increase this to include reasoning tokens (for reasoning models)
+          -- reasoning_effort = "medium", -- low|medium|high, only used for reasoning models
+        },
+      }
     },
     -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
     build = "make",
@@ -362,6 +364,16 @@ require('lazy').setup({
         ft = { "markdown", "Avante" },
       },
     },
+  },
+
+  {
+    "greggh/claude-code.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim", -- Required for git operations
+    },
+    config = function()
+      require("claude-code").setup()
+    end
   },
 
   -- Custom plugin folder
@@ -624,9 +636,9 @@ local servers = {
     },
   },
   rust_analyzer = {},
-  denols = {
-    root_dir = require("lspconfig.util").root_pattern("deno.json", "deno.jsonc")
-  },
+  -- denols = {
+  --   root_dir = require("lspconfig.util").root_pattern("deno.json", "deno.jsonc")
+  -- },
   ts_ls = {
     single_file_support = false,
     root_dir = require("lspconfig.util").root_pattern("package.json")
