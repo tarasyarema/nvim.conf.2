@@ -376,10 +376,62 @@ require('lazy').setup({
     end
   },
 
+  {
+    "rose-pine/neovim",
+    name = "rose-pine",
+  },
+
+  {
+    'projekt0n/github-nvim-theme',
+    name = 'github-theme'
+  },
+
+  {
+    'sainnhe/everforest',
+    name = 'everforest'
+  },
+
+  {
+    'rebelot/kanagawa.nvim',
+    name = 'kanagawa'
+  },
+
+  {
+    'shaunsingh/nord.nvim',
+    name = 'nord'
+  },
+
+  -- {
+  --   "sphamba/smear-cursor.nvim",
+  --   name = "smear-cursor",
+  --   opts = {
+  --     stiffness = 0.8,                      -- 0.6  [0, 1]
+  --     trailing_stiffness = 0.6,             -- 0.45 [0, 1]
+  --     stiffness_insert_mode = 0.7,          -- 0.5  [0, 1]
+  --     trailing_stiffness_insert_mode = 0.7, -- 0.5  [0, 1]
+  --     damping = 0.95,                       -- 0.85 [0, 1]
+  --     damping_insert_mode = 0.95,           -- 0.9  [0, 1]
+  --     distance_stop_animating = 0.5,        -- 0.1  > 0
+  --   }
+  -- },
+
+  {
+    "greggh/claude-code.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim", -- Required for git operations
+    },
+    config = function()
+      require("claude-code").setup()
+    end
+  },
+
   -- Custom plugin folder
   { import = 'custom.plugins' },
 }, {})
 
+
+-- [[ Color scheme ]]
+vim.cmd.colorscheme 'github_dark_dimmed'
 
 -- [[ Basic config ]]
 vim.o.showmatch      = true
