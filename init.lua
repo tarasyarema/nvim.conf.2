@@ -24,6 +24,14 @@ require('lazy').setup({
   'tpope/vim-fugitive',
   'tpope/vim-rhubarb',
 
+  -- Diffview for git diffs
+  {
+    'sindrets/diffview.nvim',
+    dependencies = {
+      'lewis6991/gitsigns.nvim'
+    }
+  },
+
   -- Detect tabstop and shiftwidth automatically
   'tpope/vim-sleuth',
 
@@ -302,6 +310,12 @@ require('lazy').setup({
         ui.close()
       end
     end,
+  },
+
+  {
+    'nvim-telescope/telescope.nvim',
+    tag = 'v0.2.0',
+    dependencies = { 'nvim-lua/plenary.nvim' }
   },
 
   {
@@ -715,20 +729,38 @@ require("mason-lspconfig").setup {
   ensure_installed = vim.tbl_keys(servers),
 }
 
-for server_name, _ in pairs(servers) do
-  require('lspconfig')[server_name].setup {
-    capabilities = capabilities,
-    on_attach = on_attach,
-    handlers = handlers,
-  }
-end
-
 -- Setup neovim lua configuration
 require('neodev').setup()
 
 -- nvim-cmp supports additional completion capabilities, so broadcast that to servers
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
+
+-- for server_name, _ in pairs(servers) do
+--   require('lspconfig')[server_name].setup {
+--     capabilities = capabilities,
+--     on_attach = on_attach,
+--     handlers = handlers,
+--   }
+-- end
+
+-- Define your common settings
+vim.lsp.config('*', {
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+-- Enable each server
+for server_name, _ in pairs(servers) do
+  vim.lsp.enable(server_name)
+end
+
+vim.api.nvim_create_autocmd("LspAttach", {
+  group = vim.api.nvim_create_augroup("erock.cfg", { clear = true }),
+  callback = function(ev)
+    on_attach(ev.data.client, ev.buf)
+  end,
+})
 
 -- [[ Configure nvim-cmp ]]
 -- See `:help cmp`
